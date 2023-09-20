@@ -13,5 +13,7 @@
 docker-compose up -d
 ```
 6. Levantar en desarrollo: ```npm run start:dev```
+7. Ejecutar endpoint seed para llenar la base de datos al endpoint: ```http://localhost:3000/api/seed```
+
 
 
