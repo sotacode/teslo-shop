@@ -7,6 +7,7 @@ import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid'; 
 import { ProductImage } from './entities/product-image.entity';
+import { User } from 'src/auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -25,13 +26,14 @@ export class ProductsService {
 
   ) { }
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User) {
     try {
       const { images = [], ...productDetails} = createProductDto;
 
       const product = this.productRepository.create({
         ...productDetails,
-        images: images.map( image => this.productImageRepository.create({url: image}))
+        images: images.map( image => this.productImageRepository.create({url: image})),
+        user
       });
       await this.productRepository.save(product);
       return { ...product, images};
@@ -91,7 +93,7 @@ export class ProductsService {
     return {...productDetails, images: images.map( image => image.url)}
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -99,7 +101,7 @@ export class ProductsService {
       const { images, ...toUpdate } = updateProductDto;
       const product = await this.productRepository.preload({
         id,
-        ...toUpdate,
+        ...toUpdate
       });
       if(!product){
         throw new NotFoundException(`Product with id: ${id} not found.`)
@@ -107,10 +109,9 @@ export class ProductsService {
       if(images){
         await queryRunner.manager.delete(ProductImage, { product: {id} })
         product.images = images.map( image => this.productImageRepository.create({url: image}))
-      }else{
-
       }
 
+      product.user = user
       await queryRunner.manager.save(product)
       await queryRunner.commitTransaction();
       await queryRunner.release()
